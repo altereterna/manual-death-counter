@@ -1,23 +1,34 @@
-require 'ffi'
+require 'gosu'
 
-class DeathCounter
+class DeathCounter < Gosu::Window
   def initialize
+    super 400, 300 # Window dimensions
+    self.caption = 'Death Counter'
+    self.background_color = Gosu::Color::TRANSPARENT
     @deaths = 0
     load_count
-    setup_key_listener
+    @font = Gosu::Font.new(30)
   end
+
+  def update
+    if Gosu.button_down?(Gosu::KB_LCONTROL) &&
+       Gosu.button_down?(Gosu::KB_LSHIFT) &&
+       Gosu.button_down?(Gosu::KB_D)
+      increment
+      sleep 1 # debounce to prevent multiple increments
+    end
+  end
+
+  def draw
+    @font.draw_text("Death count: #{@deaths}", 10, 10, 0, 1, 1, Gosu::Color::WHITE)
+  end
+
+  private
 
   def increment
     @deaths += 1
     save_count
-    puts "Death count incremented. Current count: #{@deaths}"
   end
-
-  def display
-    puts "Current death count: #{@deaths}"
-  end
-
-  private
 
   def save_count
     File.open('death_count.txt', 'w') do |file|
@@ -32,29 +43,7 @@ class DeathCounter
       @deaths = 0
     end
   end
-
-  def setup_key_listener
-    FFI::Platform::Windows
-    user32 = FFI::Library::ffi_lib('user32')
-    user32.attach_function :GetAsyncKeyState, [:int], :short
-
-    loop do
-      if user32.GetAsyncKeyState(0x44) & 0x8000 != 0 && # 'D' key
-         user32.GetAsyncKeyState(0x10) & 0x8000 != 0 && # Shift key
-         user32.GetAsyncKeyState(0x11) & 0x8000 != 0    # Ctrl key
-        increment
-        sleep 1 # debounce to prevent multiple increments
-      end
-      sleep 0.1 # reduce CPU usage
-    end
-  end
 end
 
-# Main script execution
-counter = DeathCounter.new
-
-# Keeps the script running to listen for key presses
-puts "Press Ctrl+Shift+D to increment the death count. Press Ctrl+C to exit."
-loop do
-  sleep 1 # Main loop doing nothing, waiting for key listener
-end
+# Create and show the window
+DeathCounter.new.show
